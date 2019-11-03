@@ -34,11 +34,11 @@ sim_data_by_id <- sim_data %>%
 
 ## Check if folders exist. If not, create
 if (!dir.exists("raw_data"))
-  create.dir("raw_data")
+  dir.create("raw_data")
 if (!dir.exists("permuted_data"))
-  create.dir("permuted_data")
+  dir.create("permuted_data")
 if (!dir.exists("normalized_data"))
-  create.dir("normalized_data")
+  dir.create("normalized_data")
 
 ## Create 0-mean normalized data and permuted data
 all_data <- sim_data_by_id %>%
@@ -84,5 +84,5 @@ my_write_delim(sim_data_by_id$raw[[1]] %>% select(gene),
 all_data %>% select(ID, type) %>% unique() %>%
   nest(data = ID) %>%
   mutate(write = map2(data, type, ~my_write_delim(x = .x,
-                                                  path = paste0(.y, "_data/reps.txt"),
+                                                  path = paste0(.y, "_data/", .y, "_reps.txt"),
                                                   col_names = FALSE)))

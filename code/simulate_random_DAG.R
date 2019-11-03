@@ -1,3 +1,9 @@
+library(tidyverse)
+
+n_nodes <- ifelse(!interactive(), commandArgs(TRUE)[1], 6) %>% as.numeric()
+n_edges <- ifelse(!interactive(), commandArgs(TRUE)[2], 6) %>% as.numeric()
+output_file <- ifelse(!interactive(), commandArgs(TRUE)[3], "my_network")
+
 ## Create random network by specifying number of nodes and either sparsity (value between 0 and 1 that
 ## determines the cutoff for when an edge should be included) or number of edges.
 random_network <- function(n_nodes = 6, sparsity = NULL, n_edges = NULL){
@@ -35,9 +41,9 @@ random_network <- function(n_nodes = 6, sparsity = NULL, n_edges = NULL){
 
 
 ## Create Dense Network
-network <- random_network(n_nodes = 10, n_edges = 10)
-write_tsv(x = network, path = "data/from_dense/network.tsv")
+network <- random_network(n_nodes = n_nodes, n_edges = n_edges)
+write_tsv(x = network, path = paste0(output_file, ".tsv"))
 
-## Create Sparse Network
-network <- random_network(n_nodes = 100, n_edges = 100)
-write_tsv(x = network, path = "data/from_sparse/network.tsv")
+## Save figure representation
+source("../../code/misc.R")
+ggsave(plot_network(network) + theme_void(), filename = paste0(output_file, ".png"))

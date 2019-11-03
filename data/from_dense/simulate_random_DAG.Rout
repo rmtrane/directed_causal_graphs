@@ -1,0 +1,84 @@
+
+R version 3.6.0 (2019-04-26) -- "Planting of a Tree"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> library(tidyverse)
+── Attaching packages ─────────────────────────────────────── tidyverse 1.2.1 ──
+✔ ggplot2 3.2.1     ✔ purrr   0.3.3
+✔ tibble  2.1.3     ✔ dplyr   0.8.3
+✔ tidyr   1.0.0     ✔ stringr 1.4.0
+✔ readr   1.3.1     ✔ forcats 0.4.0
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+> 
+> n_nodes <- ifelse(!interactive(), commandArgs(TRUE)[1], 6) %>% as.numeric()
+> n_edges <- ifelse(!interactive(), commandArgs(TRUE)[2], 6) %>% as.numeric()
+> output_file <- ifelse(!interactive(), commandArgs(TRUE)[3], "my_network")
+> 
+> ## Create random network by specifying number of nodes and either sparsity (value between 0 and 1 that
+> ## determines the cutoff for when an edge should be included) or number of edges.
+> random_network <- function(n_nodes = 6, sparsity = NULL, n_edges = NULL){
++   n_edges <- n_edges + n_nodes
++ 
++   if(is.null(sparsity) == is.null(n_edges)){
++     stop("Exactly one of sparsity and n_edges must be specified.")
++   }
++ 
++   tmp <- matrix(runif(n = n_nodes^2, 0, 1),nrow = n_nodes, ncol = n_nodes,
++                 dimnames = list(NULL, paste0("X", 1:n_nodes)))
++ 
++   diag(tmp) <- 1
++ 
++   tmp <- tmp %>%
++     as_tibble() %>%
++     mutate(node1 = paste0("X", 1:n_nodes)) %>%
++     gather(key = 'node2', value = 'value', -node1)
++ 
++   if(!is.null(sparsity)){
++     out <- tmp %>%
++       filter(abs(value) > 1-sparsity) %>%
++       arrange(node1, node2) %>% select(-value)
++   }
++ 
++   if(!is.null(n_edges)){
++     out <- tmp %>%
++       arrange(abs(value)) %>%
++       top_n(n_edges) %>%
++       arrange(node1, node2) %>% select(-value)
++   }
++ 
++   return(out)
++ }
+> 
+> 
+> ## Create Dense Network
+> network <- random_network(n_nodes = n_nodes, n_edges = n_edges)
+Selecting by value
+> write_tsv(x = network, path = paste0(output_file, ".tsv"))
+> 
+> ## Save figure representation
+> source("../../code/misc.R")
+> ggsave(plot_network(network) + theme_void(), filename = paste0(output_file, ".png"))
+Saving 7 x 7 in image
+> 
+> proc.time()
+   user  system elapsed 
+  3.369   0.325   4.016 
