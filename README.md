@@ -13,4 +13,3 @@
     * three folders: `raw_data/`, `normalized_data/`, and `permuted_data/` 
     * in each of the three folders, there will be on text file per sample with the time series data for that sample. There will also be a `_reps.txt` file. This is simply a list of filenames which is needed for `BETS` to run. 
     * a file `list_of_genenames.txt`. Simply a list of genenames. Again, needed for `BETS`.
-
