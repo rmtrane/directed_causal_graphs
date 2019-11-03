@@ -1,0 +1,541 @@
+
+R version 3.6.0 (2019-04-26) -- "Planting of a Tree"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> if(!"/Users/ralphtrane/RPackages" %in% .libPaths())
++   .libPaths("/workspace/rtrane/Rpackages")
+> 
+> library(simcausal)
+> library(tidyverse)
+── Attaching packages ─────────────────────────────────────── tidyverse 1.2.1 ──
+✔ ggplot2 3.2.1     ✔ purrr   0.3.3
+✔ tibble  2.1.3     ✔ dplyr   0.8.3
+✔ tidyr   1.0.0     ✔ stringr 1.4.0
+✔ readr   1.3.1     ✔ forcats 0.4.0
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+> library(parallel)
+> 
+> ## If run using R CMD BATCH, use '--args n_cores input_file output_folder' to specify number of cores,
+> ## input file specifying network, and output folder.
+> n_cores <- ifelse(!interactive(), commandArgs(TRUE)[1], 1)
+> input_file <- ifelse(!interactive(), commandArgs(TRUE)[2], "network.tsv")
+> output_folder <- ifelse(!interactive(), commandArgs(TRUE)[3], "raw_data")
+> 
+> ## Read network, and get uniform coefficient
+> network <- read_tsv(file = input_file,
++                     col_names = T) %>%
++   mutate(coefs = if_else(node1 == node2, 2*rbern(1, prob = 0.5)-1,
++                          runif(n = nrow(.), min = -1, max = 1)),
++          coefs_to_use = if_else(coefs > 0,
++                                 paste0("+", coefs),
++                                 as.character(coefs)))
+Parsed with column specification:
+cols(
+  node1 = col_character(),
+  node2 = col_character()
+)
+> 
+> ## Nest by "to nodes". This is used in the for loop later
+> for_edges <- network %>%
++   select(node1, node2, coefs_to_use) %>%
++   group_by(node2) %>%
++   nest()
+> 
+> 
+> ## Specify number of time point and samples to simulate
+> t_max <- 40
+> n_samples <- 100
+> 
+> ## Set standard deviation for rnorms
+> SD <- 1
+> 
+> ## Initiate DAG
+> D0 <- DAG.empty()
+> 
+> ## Get all initial nodes, and all nodes that do not show up as end of any edges
+> initial_nodes <- mclapply(unique(c(network$node1, network$node2)), FUN = function(i){
++ 
++   ## Nodes at time t = 0
++   nodes <- node(i, t = 0, distr = "rnorm", sd = SD)
++ 
++   ## If node does not have any parents (i.e. if it is not in the column "node 2"),
++   ## we need to add all future nodes right away, since we won't encounter it later on,
++   ## otherwise.
++   if(!i %in% unique(network$node2)){
++     nodes <- nodes +
++       node(i, t=1:t_max, distr = "rnorm", sd = SD,
++            params = list(mean = paste0(i, "[t-1]")))
++   }
++ 
++   return(nodes)
++ }, mc.cores = n_cores)
+> 
+> ## Add all nodes to DAG
+> D_from_lists <- add.nodes(D0, flatten(initial_nodes))
+> 
+> 
+> ## Get all future nodes that correspond to children in the network.
+> ## We do so one child at a time
+> nodes_from_edges <- mclapply(1:nrow(for_edges), FUN = function(i){
++   ## Expand to get all edges with node as child.
++   cur_edges <- for_edges[i,] %>%
++     unnest(cols = data)
++ 
++   ## Get the child node
++   to_node <- for_edges[i,]$node2
++ 
++   ## Create the mean formula
++   m <- paste(paste0(cur_edges$coefs_to_use, "*", cur_edges$node1, "[t-1]"), collapse = "")
++ 
++   ## Create node
++   output <- node(to_node, t = 1:t_max, distr = "rnorm",
++                  params = list(mean = m, sd = SD))
++ 
++   return(output)
++ }, mc.cores = n_cores)
+> 
+> ## Add nodes to DAG
+> D_from_lists <- add.nodes(D_from_lists, flatten(nodes_from_edges))
+> 
+> ## Set DAG and simulate data
+> DAG <- set.DAG(D_from_lists)
+...automatically assigning order attribute to some nodes...
+node X1_0, order:1
+node X10_0, order:2
+node X2_0, order:3
+node X3_0, order:4
+node X4_0, order:5
+node X5_0, order:6
+node X6_0, order:7
+node X7_0, order:8
+node X8_0, order:9
+node X9_0, order:10
+node X1_1, order:11
+node X7_1, order:12
+node X10_1, order:13
+node X3_1, order:14
+node X4_1, order:15
+node X2_1, order:16
+node X5_1, order:17
+node X6_1, order:18
+node X8_1, order:19
+node X9_1, order:20
+node X1_2, order:21
+node X7_2, order:22
+node X10_2, order:23
+node X3_2, order:24
+node X4_2, order:25
+node X2_2, order:26
+node X5_2, order:27
+node X6_2, order:28
+node X8_2, order:29
+node X9_2, order:30
+node X1_3, order:31
+node X7_3, order:32
+node X10_3, order:33
+node X3_3, order:34
+node X4_3, order:35
+node X2_3, order:36
+node X5_3, order:37
+node X6_3, order:38
+node X8_3, order:39
+node X9_3, order:40
+node X1_4, order:41
+node X7_4, order:42
+node X10_4, order:43
+node X3_4, order:44
+node X4_4, order:45
+node X2_4, order:46
+node X5_4, order:47
+node X6_4, order:48
+node X8_4, order:49
+node X9_4, order:50
+node X1_5, order:51
+node X7_5, order:52
+node X10_5, order:53
+node X3_5, order:54
+node X4_5, order:55
+node X2_5, order:56
+node X5_5, order:57
+node X6_5, order:58
+node X8_5, order:59
+node X9_5, order:60
+node X1_6, order:61
+node X7_6, order:62
+node X10_6, order:63
+node X3_6, order:64
+node X4_6, order:65
+node X2_6, order:66
+node X5_6, order:67
+node X6_6, order:68
+node X8_6, order:69
+node X9_6, order:70
+node X1_7, order:71
+node X7_7, order:72
+node X10_7, order:73
+node X3_7, order:74
+node X4_7, order:75
+node X2_7, order:76
+node X5_7, order:77
+node X6_7, order:78
+node X8_7, order:79
+node X9_7, order:80
+node X1_8, order:81
+node X7_8, order:82
+node X10_8, order:83
+node X3_8, order:84
+node X4_8, order:85
+node X2_8, order:86
+node X5_8, order:87
+node X6_8, order:88
+node X8_8, order:89
+node X9_8, order:90
+node X1_9, order:91
+node X7_9, order:92
+node X10_9, order:93
+node X3_9, order:94
+node X4_9, order:95
+node X2_9, order:96
+node X5_9, order:97
+node X6_9, order:98
+node X8_9, order:99
+node X9_9, order:100
+node X1_10, order:101
+node X7_10, order:102
+node X10_10, order:103
+node X3_10, order:104
+node X4_10, order:105
+node X2_10, order:106
+node X5_10, order:107
+node X6_10, order:108
+node X8_10, order:109
+node X9_10, order:110
+node X1_11, order:111
+node X7_11, order:112
+node X10_11, order:113
+node X3_11, order:114
+node X4_11, order:115
+node X2_11, order:116
+node X5_11, order:117
+node X6_11, order:118
+node X8_11, order:119
+node X9_11, order:120
+node X1_12, order:121
+node X7_12, order:122
+node X10_12, order:123
+node X3_12, order:124
+node X4_12, order:125
+node X2_12, order:126
+node X5_12, order:127
+node X6_12, order:128
+node X8_12, order:129
+node X9_12, order:130
+node X1_13, order:131
+node X7_13, order:132
+node X10_13, order:133
+node X3_13, order:134
+node X4_13, order:135
+node X2_13, order:136
+node X5_13, order:137
+node X6_13, order:138
+node X8_13, order:139
+node X9_13, order:140
+node X1_14, order:141
+node X7_14, order:142
+node X10_14, order:143
+node X3_14, order:144
+node X4_14, order:145
+node X2_14, order:146
+node X5_14, order:147
+node X6_14, order:148
+node X8_14, order:149
+node X9_14, order:150
+node X1_15, order:151
+node X7_15, order:152
+node X10_15, order:153
+node X3_15, order:154
+node X4_15, order:155
+node X2_15, order:156
+node X5_15, order:157
+node X6_15, order:158
+node X8_15, order:159
+node X9_15, order:160
+node X1_16, order:161
+node X7_16, order:162
+node X10_16, order:163
+node X3_16, order:164
+node X4_16, order:165
+node X2_16, order:166
+node X5_16, order:167
+node X6_16, order:168
+node X8_16, order:169
+node X9_16, order:170
+node X1_17, order:171
+node X7_17, order:172
+node X10_17, order:173
+node X3_17, order:174
+node X4_17, order:175
+node X2_17, order:176
+node X5_17, order:177
+node X6_17, order:178
+node X8_17, order:179
+node X9_17, order:180
+node X1_18, order:181
+node X7_18, order:182
+node X10_18, order:183
+node X3_18, order:184
+node X4_18, order:185
+node X2_18, order:186
+node X5_18, order:187
+node X6_18, order:188
+node X8_18, order:189
+node X9_18, order:190
+node X1_19, order:191
+node X7_19, order:192
+node X10_19, order:193
+node X3_19, order:194
+node X4_19, order:195
+node X2_19, order:196
+node X5_19, order:197
+node X6_19, order:198
+node X8_19, order:199
+node X9_19, order:200
+node X1_20, order:201
+node X7_20, order:202
+node X10_20, order:203
+node X3_20, order:204
+node X4_20, order:205
+node X2_20, order:206
+node X5_20, order:207
+node X6_20, order:208
+node X8_20, order:209
+node X9_20, order:210
+node X1_21, order:211
+node X7_21, order:212
+node X10_21, order:213
+node X3_21, order:214
+node X4_21, order:215
+node X2_21, order:216
+node X5_21, order:217
+node X6_21, order:218
+node X8_21, order:219
+node X9_21, order:220
+node X1_22, order:221
+node X7_22, order:222
+node X10_22, order:223
+node X3_22, order:224
+node X4_22, order:225
+node X2_22, order:226
+node X5_22, order:227
+node X6_22, order:228
+node X8_22, order:229
+node X9_22, order:230
+node X1_23, order:231
+node X7_23, order:232
+node X10_23, order:233
+node X3_23, order:234
+node X4_23, order:235
+node X2_23, order:236
+node X5_23, order:237
+node X6_23, order:238
+node X8_23, order:239
+node X9_23, order:240
+node X1_24, order:241
+node X7_24, order:242
+node X10_24, order:243
+node X3_24, order:244
+node X4_24, order:245
+node X2_24, order:246
+node X5_24, order:247
+node X6_24, order:248
+node X8_24, order:249
+node X9_24, order:250
+node X1_25, order:251
+node X7_25, order:252
+node X10_25, order:253
+node X3_25, order:254
+node X4_25, order:255
+node X2_25, order:256
+node X5_25, order:257
+node X6_25, order:258
+node X8_25, order:259
+node X9_25, order:260
+node X1_26, order:261
+node X7_26, order:262
+node X10_26, order:263
+node X3_26, order:264
+node X4_26, order:265
+node X2_26, order:266
+node X5_26, order:267
+node X6_26, order:268
+node X8_26, order:269
+node X9_26, order:270
+node X1_27, order:271
+node X7_27, order:272
+node X10_27, order:273
+node X3_27, order:274
+node X4_27, order:275
+node X2_27, order:276
+node X5_27, order:277
+node X6_27, order:278
+node X8_27, order:279
+node X9_27, order:280
+node X1_28, order:281
+node X7_28, order:282
+node X10_28, order:283
+node X3_28, order:284
+node X4_28, order:285
+node X2_28, order:286
+node X5_28, order:287
+node X6_28, order:288
+node X8_28, order:289
+node X9_28, order:290
+node X1_29, order:291
+node X7_29, order:292
+node X10_29, order:293
+node X3_29, order:294
+node X4_29, order:295
+node X2_29, order:296
+node X5_29, order:297
+node X6_29, order:298
+node X8_29, order:299
+node X9_29, order:300
+node X1_30, order:301
+node X7_30, order:302
+node X10_30, order:303
+node X3_30, order:304
+node X4_30, order:305
+node X2_30, order:306
+node X5_30, order:307
+node X6_30, order:308
+node X8_30, order:309
+node X9_30, order:310
+node X1_31, order:311
+node X7_31, order:312
+node X10_31, order:313
+node X3_31, order:314
+node X4_31, order:315
+node X2_31, order:316
+node X5_31, order:317
+node X6_31, order:318
+node X8_31, order:319
+node X9_31, order:320
+node X1_32, order:321
+node X7_32, order:322
+node X10_32, order:323
+node X3_32, order:324
+node X4_32, order:325
+node X2_32, order:326
+node X5_32, order:327
+node X6_32, order:328
+node X8_32, order:329
+node X9_32, order:330
+node X1_33, order:331
+node X7_33, order:332
+node X10_33, order:333
+node X3_33, order:334
+node X4_33, order:335
+node X2_33, order:336
+node X5_33, order:337
+node X6_33, order:338
+node X8_33, order:339
+node X9_33, order:340
+node X1_34, order:341
+node X7_34, order:342
+node X10_34, order:343
+node X3_34, order:344
+node X4_34, order:345
+node X2_34, order:346
+node X5_34, order:347
+node X6_34, order:348
+node X8_34, order:349
+node X9_34, order:350
+node X1_35, order:351
+node X7_35, order:352
+node X10_35, order:353
+node X3_35, order:354
+node X4_35, order:355
+node X2_35, order:356
+node X5_35, order:357
+node X6_35, order:358
+node X8_35, order:359
+node X9_35, order:360
+node X1_36, order:361
+node X7_36, order:362
+node X10_36, order:363
+node X3_36, order:364
+node X4_36, order:365
+node X2_36, order:366
+node X5_36, order:367
+node X6_36, order:368
+node X8_36, order:369
+node X9_36, order:370
+node X1_37, order:371
+node X7_37, order:372
+node X10_37, order:373
+node X3_37, order:374
+node X4_37, order:375
+node X2_37, order:376
+node X5_37, order:377
+node X6_37, order:378
+node X8_37, order:379
+node X9_37, order:380
+node X1_38, order:381
+node X7_38, order:382
+node X10_38, order:383
+node X3_38, order:384
+node X4_38, order:385
+node X2_38, order:386
+node X5_38, order:387
+node X6_38, order:388
+node X8_38, order:389
+node X9_38, order:390
+node X1_39, order:391
+node X7_39, order:392
+node X10_39, order:393
+node X3_39, order:394
+node X4_39, order:395
+node X2_39, order:396
+node X5_39, order:397
+node X6_39, order:398
+node X8_39, order:399
+node X9_39, order:400
+node X1_40, order:401
+node X7_40, order:402
+node X10_40, order:403
+node X3_40, order:404
+node X4_40, order:405
+node X2_40, order:406
+node X5_40, order:407
+node X6_40, order:408
+node X8_40, order:409
+node X9_40, order:410
+> sim_data <- sim(DAG, n = n_samples, rndseed = 101010, wide = F)
+simulating observed dataset from the DAG object
+> 
+> ## Write data to .csv file.
+> write_csv(sim_data, paste(output_folder, "sim_data.csv", sep = "/"))
+> 
+> ## Write DAG to file
+> write_rds(DAG, paste(output_folder, "dag.Rds", sep = "/"))
+> 
+> proc.time()
+   user  system elapsed 
+  6.844   0.336   7.571 
