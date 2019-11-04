@@ -81,7 +81,8 @@ my_write_delim(sim_data_by_id$raw[[1]] %>% select(gene),
                path = "list_of_genenames.txt", delim = "\t", col_names = F)
 
 ## Write rep files
-all_data %>% select(ID = paste0(ID, ".txt"), type) %>% unique() %>%
+all_data %>% select(ID, type) %>% unique() %>%
+  mutate(ID = paste0(ID, ".txt")) %>%
   nest(data = ID) %>%
   mutate(write = map2(data, type, ~my_write_delim(x = .x,
                                                   path = paste0(.y, "_data/", .y, "_reps.txt"),
