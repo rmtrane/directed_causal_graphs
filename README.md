@@ -8,8 +8,9 @@
 4. From command line, run `R CMD BATCH '--args n_cores input_file' ../../code/simulate_from_DAG.R`. Here `n_cores` is the number of cores to use (if in doubt, set to 1), and `input_file` is the file specifying the network (probably `output_file.tsv` from step 3). This will create the following:
     * `dag.Rds`. This contains the DAG object created.
     * `DAG_figure.png`. This is a graphical representation of the DAG object created. Should be the exact same as `output_file.png`
-    * `sim_data.csv`. A .csv file with the simulated time series data. 
+    * `sim_data.csv`. A .csv file with the simulated time series data.  
 5. From command line, run `R CMD BATCH '--args sim_data.csv' ../../code/reshape_sim_data.R`. This will create
     * three folders: `raw_data/`, `normalized_data/`, and `permuted_data/` 
     * in each of the three folders, there will be on text file per sample with the time series data for that sample. There will also be a `_reps.txt` file. This is simply a list of filenames which is needed for `BETS` to run. 
     * a file `list_of_genenames.txt`. Simply a list of genenames. Again, needed for `BETS`.
+    * a file `sim_data_normalized.txt`. Same as `sim_data.txt`, but data has been normalized to have mean 0. 
