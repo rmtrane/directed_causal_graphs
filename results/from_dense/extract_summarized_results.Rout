@@ -1,0 +1,75 @@
+
+R version 3.6.0 (2019-04-26) -- "Planting of a Tree"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> arguments <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)
+Registered S3 method overwritten by 'R.oo':
+  method        from       
+  throw.default R.methodsS3
+> 
+> true_network_file <- arguments["true_network"]
+> other_networks <- arguments[which(names(arguments) == "")]
+> 
+> library(tidyverse)
+── Attaching packages ─────────────────────────────────────── tidyverse 1.2.1 ──
+✔ ggplot2 3.2.1     ✔ purrr   0.3.3
+✔ tibble  2.1.3     ✔ dplyr   0.8.3
+✔ tidyr   1.0.0     ✔ stringr 1.4.0
+✔ readr   1.3.1     ✔ forcats 0.4.0
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+> 
+> true_network <- read_tsv(arguments[["true_network"]]) %>%
++   mutate(edges = paste(node1, node2, sep = "-"))
+Parsed with column specification:
+cols(
+  node1 = col_character(),
+  node2 = col_character()
+)
+> 
+> results <- tibble(network_file = unlist(other_networks)) %>%
++   mutate(network = map(network_file, ~read_tsv(.x)),
++          Precision = map_dbl(network, ~length(intersect(.x$edges, true_network$edges))/nrow(.x)),
++          Recall = map_dbl(network, ~length(intersect(.x$edges, true_network$edges))/nrow(true_network)),
++          `F score` = ( 2*Precision*Recall ) / (Precision + Recall)) %>%
++   select(-network)
+Parsed with column specification:
+cols(
+  node2 = col_character(),
+  node1 = col_character(),
+  estimate = col_double(),
+  edges = col_character()
+)
+> 
+> write_tsv(results, path = "summarized_results.tsv")
+> 
+> # true_network <- read_tsv(input_networkfile) %>%
+> #   mutate(edges = paste(node1, node2, sep = "-"))
+> #
+> # results_output <- tibble(Precision = length(intersect(network$edges, true_network$edges))/length(network$edges),
+> #                          Recall = length(intersect(network$edges, true_network$edges))/length(true_network$edges),
+> #                          `F Score` = ( 2*Precision*Recall ) / ( Precision + Recall ))
+> #
+> # write_tsv(results_output, path = paste0(here::here(), "/results/", network_type, "granger_causal_results.tsv"))
+> 
+> proc.time()
+   user  system elapsed 
+  1.286   0.144   1.470 

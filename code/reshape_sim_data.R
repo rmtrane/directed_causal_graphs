@@ -65,7 +65,9 @@ normalized_only <- all_data %>%
   filter(type == 'normalized') %>%
   select(-type) %>%
   unnest(cols = data) %>%
-  arrange(ID, gene)
+  gather(key = 'time', value = 'value', -c("ID", "gene")) %>%
+  spread(gene, value) %>%
+  arrange(ID, time)
 
 write_csv(x = normalized_only, "sim_data_normalized.csv")
 
@@ -87,3 +89,4 @@ all_data %>% select(ID, type) %>% unique() %>%
   mutate(write = map2(data, type, ~my_write_delim(x = .x,
                                                   path = paste0(.y, "_data/", .y, "_reps.txt"),
                                                   col_names = FALSE)))
+

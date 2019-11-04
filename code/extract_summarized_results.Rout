@@ -1,0 +1,65 @@
+
+R version 3.6.0 (2019-04-26) -- "Planting of a Tree"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> arguments <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)
+Registered S3 method overwritten by 'R.oo':
+  method        from       
+  throw.default R.methodsS3
+> 
+> true_network_file <- arguments["true_network"]
+> 
+> other_networks <- arguments[which(names(arguments) == "")]
+> 
+> 
+> print(arguments)
+$true_network
+[1] "correctNet"
+
+[[2]]
+[1] "other1"
+
+[[3]]
+[1] "other2"
+
+[[4]]
+[1] "other3"
+
+$diff_val
+[1] "2"
+
+> print(true_network_file)
+$true_network
+[1] "correctNet"
+
+> other_networks
+[[1]]
+[1] "other1"
+
+[[2]]
+[1] "other2"
+
+[[3]]
+[1] "other3"
+
+> 
+> proc.time()
+   user  system elapsed 
+  0.316   0.070   0.417 

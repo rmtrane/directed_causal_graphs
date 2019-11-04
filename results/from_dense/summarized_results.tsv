@@ -1,0 +1,2 @@
+network_file	Precision	Recall	F score
+granger_causal_network.tsv	0.4	0.8	0.5333333333333333
