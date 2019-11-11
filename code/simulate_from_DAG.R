@@ -98,7 +98,7 @@ sim_data_list <- mclapply(X = n_per_group,
                           })
 
 sim_data <- map2(sim_data_list, 1:n_cores, function(x,y){
-  x %>% mutate(ID2 = ID + (y-1)*n_per_group[1])
+  x %>% mutate(ID = ID + (y-1)*n_per_group[1])
 }) %>%
   bind_rows()
 
