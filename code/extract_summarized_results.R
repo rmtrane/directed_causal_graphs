@@ -16,12 +16,3 @@ results <- tibble(network_file = unlist(other_networks)) %>%
   select(-network)
 
 write_tsv(results, path = "summarized_results.tsv")
-
-# true_network <- read_tsv(input_networkfile) %>%
-#   mutate(edges = paste(node1, node2, sep = "-"))
-#
-# results_output <- tibble(Precision = length(intersect(network$edges, true_network$edges))/length(network$edges),
-#                          Recall = length(intersect(network$edges, true_network$edges))/length(true_network$edges),
-#                          `F Score` = ( 2*Precision*Recall ) / ( Precision + Recall ))
-#
-# write_tsv(results_output, path = paste0(here::here(), "/results/", network_type, "granger_causal_results.tsv"))

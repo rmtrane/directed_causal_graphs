@@ -5,10 +5,20 @@ library(simcausal)
 library(tidyverse)
 library(parallel)
 
-## If run using R CMD BATCH, use '--args n_cores input_file' to specify number of cores,
-## input file specifying network, and output folder.
-n_cores <- ifelse(!interactive(), commandArgs(TRUE)[1], 1)
-input_file <- ifelse(!interactive(), commandArgs(TRUE)[2], "network.tsv")
+## If run using R CMD BATCH, use '--args n_cores=x input_file=y n_samples=z t_max=T' to
+## specify parameters
+if(!interactive()){
+  arguments <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)
+  n_cores <- arguments[["n_cores"]]
+  n_samples <- arguments[["n_samples"]]
+  t_max <- arguments[["t_max"]]
+  input_file <- arguments[["input_file"]]
+} else {
+  n_cores <- 1
+  input_file <- "dense_network.tsv"
+  n_samples <- 100
+  t_max <- 40
+}
 
 ## Read network, and get uniform coefficient
 network <- read_tsv(file = input_file,
@@ -24,11 +34,6 @@ for_edges <- network %>%
   select(node1, node2, coefs_to_use) %>%
   group_by(node2) %>%
   nest()
-
-
-## Specify number of time point and samples to simulate
-t_max <- 40
-n_samples <- 100
 
 ## Set standard deviation for rnorms
 SD <- 1
@@ -83,7 +88,21 @@ D_from_lists <- add.nodes(D_from_lists, flatten(nodes_from_edges))
 
 ## Set DAG and simulate data
 DAG <- set.DAG(D_from_lists)
-sim_data <- sim(DAG, n = n_samples, rndseed = 101010, wide = F)
+
+n_per_group <- ceiling(n_samples/n_cores)
+n_per_group <- rep(1:n_cores, each = n_per_group)[c(1:n_samples)] %>% table() %>% c()
+
+sim_data_list <- mclapply(X = n_per_group,
+                          FUN = function(x){
+                            sim(DAG, n = x, rndseed = 101010, wide = FALSE)
+                          })
+
+sim_data <- map2(sim_data_list, 1:n_cores, function(x,y){
+  x %>% mutate(ID2 = ID + (y-1)*n_per_group[1])
+}) %>%
+  bind_rows()
+
+#sim_data <- sim(DAG, n = n_samples, rndseed = 101010, wide = F)
 
 ## Save DAG as figure
 source(paste0(here::here(), "/code/misc.R"))
