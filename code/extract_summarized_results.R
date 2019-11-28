@@ -1,6 +1,5 @@
 arguments <- R.utils::commandArgs(trailingOnly = TRUE, asValues = TRUE)
 
-true_network_file <- arguments["true_network"]
 other_networks <- arguments[which(names(arguments) == "")]
 
 library(tidyverse)

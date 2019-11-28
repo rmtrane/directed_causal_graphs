@@ -23,7 +23,7 @@ if(!interactive()){
 ## Read network, and get uniform coefficient
 network <- read_tsv(file = input_file,
                     col_names = T) %>%
-  mutate(coefs = if_else(node1 == node2, 2*rbern(1, prob = 0.5)-1,
+  mutate(coefs = if_else(node1 == node2, (2*rbern(1, prob = 0.5)-1)*runif(1, min = 0.25, max = 1),
                          runif(n = nrow(.), min = -1, max = 1)),
          coefs_to_use = if_else(coefs > 0,
                                 paste0("+", coefs),
@@ -47,7 +47,7 @@ initial_nodes <- mclapply(unique(c(network$node1, network$node2)), FUN = functio
   ## Nodes at time t = 0
   nodes <- node(i, t = 0, distr = "rnorm", sd = SD)
 
-  ## If node does not have any parents (i.e. if it is not in the column "node 2"),
+  ## If node does not have any parents (i.e. if it is not in the column "node2"),
   ## we need to add all future nodes right away, since we won't encounter it later on,
   ## otherwise.
   if(!i %in% unique(network$node2)){
